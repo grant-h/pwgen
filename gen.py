@@ -23,13 +23,11 @@ def readWordlist(filename, allowed):
     # parse the wordlist
     for i in l:
         b = i.split("\t")
+        word = b[0]
 
         # avoid empty words
-        if len(b) == 1 or len(b[1]) == 0:
+        if len(word) == 0:
             continue
-
-        word = b[1]
-        possibleWords += 1
 
         # make sure the word doesn't have any disallowed characters
         if len(set(word) - allowedSet) != 0:
@@ -43,7 +41,8 @@ def readWordlist(filename, allowed):
         if len(set(word)) <= 1:
             continue
 
-        a.append(b[1])
+        possibleWords += 1
+        a.append(word)
 
     return a, possibleWords
 
@@ -64,9 +63,10 @@ def main(args):
         sys.exit(1)
 
     # TODO: make these as inputs to the program
-    numWords = 3
-    minLength = 7
-    maxLength = 15
+    minWords = 2
+    maxWords = 4
+    minLength = 14
+    maxLength = 20
 
     # seed can be any string or number. it is converted to a single number
     # for usage
@@ -96,7 +96,7 @@ def main(args):
         w = []
 
         # notify if the requirements are too strong
-        if skippedStreak > 100:
+        if skippedStreak > 400:
             print("WARNING: could not generate a valid passphrase 10 times in a row")
             sys.exit(1)
 
@@ -110,6 +110,18 @@ def main(args):
 
         # add some numbers
         numNumbers = random.randint(1,3)
+        for k, val in enumerate(range(numNumbers)):
+            lrange = 0
+
+            # dont start with 0
+            if k == 0:
+                lrange = 1
+
+            # fire some numbers
+            w.append(str(random.randint(lrange, 9)))
+
+        # add some special characters
+        numNumbers = random.randint(0,1)
         for k, val in enumerate(range(numNumbers)):
             lrange = 0
 
