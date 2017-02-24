@@ -6,9 +6,11 @@ import sys
 import string
 import argparse
 import math
+from hashlib import sha512
 
 NAME="CCDCPass"
-VERSION="1.0"
+VERSION="1.1"
+MIN_WORD_LENGTH=4
 
 # TODO: parameterize this function (i.e min length, max length, etc)
 def readWordlist(filename, allowed):
@@ -17,16 +19,24 @@ def readWordlist(filename, allowed):
     l = l.split('\n')
     a = []
 
+    vowels = set(['a', 'e', 'i', 'o', 'u'])
     allowedSet = set(allowed)
     possibleWords = 0
 
     # parse the wordlist
     for i in l:
-        b = i.split("\t")
-        word = b[0]
+        # TODO: make it so we can select words in different columns
+        word = i
+
+        # keep track of ALL of the possible words
+        possibleWords += 1
 
         # avoid empty words
         if len(word) == 0:
+            continue
+
+        # Make sure the word has at least one vowel
+        if len(set(word) - vowels) == len(word):
             continue
 
         # make sure the word doesn't have any disallowed characters
@@ -34,14 +44,13 @@ def readWordlist(filename, allowed):
             continue
 
         # assert a minimum length
-        if len(word) < 3:
+        if len(word) < MIN_WORD_LENGTH:
             continue
 
         # disallow words with just one character repeating
         if len(set(word)) <= 1:
             continue
 
-        possibleWords += 1
         a.append(word)
 
     return a, possibleWords
@@ -52,28 +61,28 @@ def main(args):
     elif args.format == "latex":
         driver = driver_latex
     else:
-        print "invalid driver type"
+        sys.stderr.write("invalid driver type\n")
         return
 
     title = args.title
     numPassphrase = args.n
 
     if numPassphrase <= 0:
-        print("Invalid word count")
+        sys.stderr.write("Invalid word count\n")
         sys.exit(1)
 
     # TODO: make these as inputs to the program
     minWords = 2
     maxWords = 4
+    minNumbers = 1
+    maxNumbers = 3
     minLength = 14
     maxLength = 20
 
     # seed can be any string or number. it is converted to a single number
     # for usage
     seedString = args.seed
-    # TODO: this seed function is COMPLETELY insecure. Can be bruteforced
-    # and broken if an attacker knows at least one password
-    seedNumber = sum([ord(i) for i in seedString])
+    seedNumber = int(sha512(seedString).hexdigest(), 16)
 
     random.seed(seedNumber)
 
@@ -84,32 +93,37 @@ def main(args):
     sys.stderr.write("Wordlist stats %d/%d words\n" % (len(wordlist), possibleWords))
 
     if len(wordlist) == 0:
-        print "Failed to read wordlist"
+        sys.stderr.write("ERROR: Failed to read wordlist\n")
         sys.exit(1)
 
     passphrases = []
+    word_freq = {}
 
     i = 0
     skippedStreak = 0
+    tries = 0
 
     while i < numPassphrase:
-        w = []
+        words = []
+        numbers = []
+        special = []
+        tries += 1
 
         # notify if the requirements are too strong
-        if skippedStreak > 400:
-            print("WARNING: could not generate a valid passphrase 10 times in a row")
+        if skippedStreak >= 800:
+            sys.stderr.write("ERROR: could not generate a valid passphrase %d times in a row\n" % skippedStreak)
             sys.exit(1)
 
         # gogogogo
-        for j in range(numWords):
+        for j in range(random.randint(minWords, maxWords)):
             g = wordlist[random.randint(0, len(wordlist)-1)]
             c = list(g)
             c[0] = c[0].upper()
             g = "".join(c)
-            w.append(g)
+            words.append(g)
 
         # add some numbers
-        numNumbers = random.randint(1,3)
+        numNumbers = random.randint(minNumbers,maxNumbers)
         for k, val in enumerate(range(numNumbers)):
             lrange = 0
 
@@ -118,30 +132,48 @@ def main(args):
                 lrange = 1
 
             # fire some numbers
-            w.append(str(random.randint(lrange, 9)))
+            numbers.append(str(random.randint(lrange, 9)))
 
-        # add some special characters
-        numNumbers = random.randint(0,1)
-        for k, val in enumerate(range(numNumbers)):
-            lrange = 0
-
-            # dont start with 0
-            if k == 0:
-                lrange = 1
-
-            # fire some numbers
-            w.append(str(random.randint(lrange, 9)))
-
-        passphrase = "".join(w)
+        special += '!'
+        passphrase = "".join(words) + "".join(numbers) + "".join(special)
 
         # ensure that the passphrase meets our requirements
         if len(passphrase) < minLength or len(passphrase) > maxLength:
             skippedStreak += 1
             continue
 
-        skippedStreak = 0
+        # calculate word frequency
+        for word in words:
+            if word not in word_freq:
+                word_freq[word] = 0
+            word_freq[word] += 1
+
         i += 1
+        skippedStreak = 0
         passphrases.append(passphrase)
+
+    if tries >= numPassphrase:
+        sys.stderr.write("Success Ratio: %.2f%%\n" % (float(numPassphrase)/tries*100))
+    else:
+        sys.stderr.write("Number of tries %d\n" % (tries))
+
+    # Calculate some stats
+    duplicates = 0
+    for k,v in word_freq.iteritems():
+        if v > 1:
+            duplicates += 1
+
+    sys.stderr.write("Unique words: %d\n" % len(word_freq))
+
+    tries = (possibleWords**minWords)*(10**minNumbers)
+    tries_str = list(str(tries))
+    lenner = len(tries_str)
+    for i in range(1, len(tries_str)/3+1):
+        if lenner-i*3 > 0:
+            tries_str.insert(lenner-i*3, ',')
+
+    sys.stderr.write("Min brute-forcing required: %s tries\n" % ("".join(tries_str)))
+    sys.stderr.write("Duplicate words: %d\n" % (duplicates))
 
     # send the words to the output driver
     driver(passphrases, title, seedString, args.showseed)
