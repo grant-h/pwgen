@@ -1,16 +1,27 @@
 \documentclass[11pt, pdftex]{article}
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=0.5in, top=1.0in, bottom=0.7in]{geometry}
+\usepackage{fancyhdr}
+ 
+\pagestyle{fancy}
+\lhead{{\bfseries @@TITLE@@} - Created \today}
+\rhead{@@AUTHOR@@}
+\rfoot{Page \thepage/\pageref{LastPage}}
+\cfoot{}
 
-\title{@@TITLE@@}
-\author{\tt @@AUTHOR@@}
+%\font\myfont=cmr12 at 15pt
+%\title{{\myfont @@TITLE@@}}
+%\author{\tt @@AUTHOR@@}
+%\date{\today}
 
 \begin{document}
-\pagenumbering{gobble}
-\maketitle
+%\pagenumbering{gobble}
+%\maketitle
 
 \tt
 \noindent
 
 @@CONTENT@@
+
+\label{LastPage}
 
 \end{document}

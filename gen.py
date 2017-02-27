@@ -190,24 +190,26 @@ def driver_latex(words, title, seed, showseed):
 		\end{enumerate}
 		\end{minipage}"""
 
+    wordsPerPage = 90
     wordsPerCol = 30
     numColumns = int(math.ceil(float(len(words))/wordsPerCol))
 
     renderedColumns = []
     for i in range(numColumns):
-        if i and i % 3 == 0:
-            renderedColumns.append(r"\newpage")
-
         lindex = i*wordsPerCol
         rindex = min(lindex+wordsPerCol, len(words))
         colWords = words[lindex:rindex]
 
+        if i and i % 3 == 0:
+            renderedColumns.append(r"\newpage")
+
         lines = []
         for j, v in enumerate(colWords):
             if (j+1) % (10) == 0:
-                lines.append("\item " + v + " \\\\[1cm]")
+                lines.append("\item " + v + " \\\\[1.0cm]")
+                #lines.append(r"\noindent\hspace{-1.5cm}\makebox[0.9\textwidth]{\rule{0.9\textwidth}{0.4pt}} \\[0.75cm]")
             else:
-                lines.append("\item " + v + " \\\\")
+                lines.append("\item " + v + " \\\\[0.70cm]")
 
         renderedColumn = column.replace("@@CONTENT@@", "\n".join(lines))
         renderedColumn = renderedColumn.replace("@@START@@", str(lindex))

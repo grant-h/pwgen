@@ -1,4 +1,6 @@
-test.aux
-test.log
-test.pdf
-test.tex
+*.aux
+*.log
+*.pdf
+*.tex
+*.swp
+*.swo
